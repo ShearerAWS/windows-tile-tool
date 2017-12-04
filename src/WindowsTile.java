@@ -1,13 +1,18 @@
 import java.io.File;
 
+import javax.swing.Icon;
+import javax.swing.filechooser.FileSystemView;
+
 public class WindowsTile {
     private String name;
     private File launcher;
-    boolean hasVisualElements;
+    private Icon icon;
+    private boolean hasVisualElements;
 
-    public WindowsTile(String name, String path) {
-	this.name = name;
+    public WindowsTile(File shortcut, String path) {
+	name = shortcut.getName().replaceFirst("[.][^.]+$", "");
 	launcher = new File(path);
+	icon = FileSystemView.getFileSystemView().getSystemIcon(shortcut);
 
 	/*
 	 * Checks if tile has a .VisualElementsManifest.xml
@@ -22,11 +27,15 @@ public class WindowsTile {
 	return name;
     }
 
+    public File launcher() {
+	return launcher;
+    }
+
     public boolean hasVisualElements() {
 	return hasVisualElements;
     }
 
     public void exportVisualElements() {
-
+	// TODO: Export VisualElementsManifest.xml
     }
 }
