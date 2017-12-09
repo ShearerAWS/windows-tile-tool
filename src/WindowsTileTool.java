@@ -54,6 +54,8 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 	private ArrayList<WindowsTile> tiles;
 	private int currentTileIndex;
 
+	private boolean validColor = true;
+
 	public WindowsTileTool() {
 
 		loadTiles();
@@ -277,7 +279,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		gbc_rigidArea.gridy = 4;
 		settingsPanel.add(rigidArea, gbc_rigidArea);
 
-		customImageRadio = new JRadioButton("Custom Image");
+		customImageRadio = new JRadioButton("Custom Images");
 		GridBagConstraints gbc_customImageRadio = new GridBagConstraints();
 		gbc_customImageRadio.gridwidth = 3;
 		gbc_customImageRadio.insets = new Insets(0, 0, 5, 0);
@@ -286,7 +288,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		settingsPanel.add(customImageRadio, gbc_customImageRadio);
 		customImageRadio.addActionListener(this);
 
-		JLabel lblImage150 = new JLabel("Icon:");
+		JLabel lblImage150 = new JLabel("Normal Tile:");
 		GridBagConstraints gbc_lblImage150 = new GridBagConstraints();
 		gbc_lblImage150.anchor = GridBagConstraints.EAST;
 		gbc_lblImage150.insets = new Insets(0, 0, 5, 5);
@@ -306,7 +308,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		lblImage150.setLabelFor(btnImageSelect150);
 		btnImageSelect150.addActionListener(this);
 
-		JLabel lblImage70 = new JLabel("Small Icon:");
+		JLabel lblImage70 = new JLabel("Small Tile:");
 		GridBagConstraints gbc_lblImage70 = new GridBagConstraints();
 		gbc_lblImage70.anchor = GridBagConstraints.EAST;
 		gbc_lblImage70.insets = new Insets(0, 0, 5, 5);
@@ -412,10 +414,9 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		} else if (source.equals(showLabelRadio)) {
 			changeShowLabel();
 		} else if (source.equals(btnApply)) {
-			tiles.get(currentTileIndex).exportVisualElements();
+			exportVisualElements();
 		} else if (source.equals(btnRestoreDefault)) {
-			tiles.get(currentTileIndex).removeVisualElements();
-			changeCurrentTile();
+			removeVisualElements();
 		} else if (source.equals(btnChangeSize)) {
 			changeIconSize();
 		} else if (source.equals(btnImageSelect70)) {
@@ -424,6 +425,26 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 			changeImage150();
 		} else if (source.equals(customImageRadio)) {
 			changeCustomImage();
+		}
+	}
+
+	private void removeVisualElements() {
+		tiles.get(currentTileIndex).removeVisualElements();
+		changeCurrentTile();
+	}
+
+	private void exportVisualElements() {
+		if (!validColor) {
+			backgroundColorTextField.requestFocus();
+			java.awt.Toolkit.getDefaultToolkit().beep();
+		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage150()) {
+			btnImageSelect150.requestFocus();
+			java.awt.Toolkit.getDefaultToolkit().beep();
+		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage70()) {
+			btnImageSelect70.requestFocus();
+			java.awt.Toolkit.getDefaultToolkit().beep();
+		} else {
+			tiles.get(currentTileIndex).exportVisualElements();
 		}
 	}
 
@@ -451,10 +472,12 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 				File file = fc.getSelectedFile();
 				BufferedImage image150 = ImageIO.read(fc.getSelectedFile());
 				tiles.get(currentTileIndex).setImage150(image150);
+				btnImageSelect150.setText("Change Image");
 			}
 		} catch (Exception e) {
 			// TODO: Handle image upload error
 		}
+
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
 	}
 
@@ -471,10 +494,12 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 				File file = fc.getSelectedFile();
 				BufferedImage image70 = ImageIO.read(fc.getSelectedFile());
 				tiles.get(currentTileIndex).setImage70(image70);
+				btnImageSelect70.setText("Change Image");
 			}
 		} catch (Exception e) {
 			// TODO: Handle image upload error
 		}
+
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
 	}
 
@@ -484,7 +509,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		btnImageSelect70.setEnabled(customImage);
 		tiles.get(currentTileIndex).setCustomImage(customImage);
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-
 	}
 
 	private void changeShowLabel() {
@@ -519,6 +543,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		Color c = t.getBackgroundColor();
 		String colorStr = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 		backgroundColorTextField.setText(colorStr);
+		validColor = true;
 
 		if (t.isLabelLight()) {
 			labelColorComboBox.setSelectedIndex(0);
@@ -534,6 +559,18 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		customImageRadio.setSelected(t.getCustomImage());
 		btnImageSelect150.setEnabled(t.getCustomImage());
 		btnImageSelect70.setEnabled(t.getCustomImage());
+
+		if (tiles.get(currentTileIndex).hasImage150()) {
+			btnImageSelect150.setText("Change Image");
+		} else {
+			btnImageSelect150.setText("Select Image");
+		}
+
+		if (tiles.get(currentTileIndex).hasImage70()) {
+			btnImageSelect70.setText("Change Image");
+		} else {
+			btnImageSelect70.setText("Select Image");
+		}
 	}
 
 	private void updateTileColor() {
@@ -547,10 +584,11 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 			backgroundColorTextField.setBackground(Color.WHITE);
 			tiles.get(currentTileIndex).setBackgroundColor(backgroundColor);
 			tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+			validColor = true;
 		} catch (Exception e) {
 			backgroundColorTextField.setBackground(Color.PINK);
+			validColor = false;
 		}
-
 	}
 
 	@Override
@@ -559,7 +597,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		if (source.equals(backgroundColorTextField)) {
 			backgroundColorTextField.selectAll();
 		}
-
 	}
 
 	@Override
@@ -568,7 +605,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		if (source.equals(backgroundColorTextField)) {
 			updateTileColor();
 		}
-
 	}
 
 	@Override
@@ -577,7 +613,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		if (source.equals(backgroundColorTextField)) {
 			updateTileColor();
 		}
-
 	}
 
 	@Override
@@ -586,7 +621,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		if (source.equals(backgroundColorTextField)) {
 			updateTileColor();
 		}
-
 	}
 
 	@Override
@@ -595,6 +629,5 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		if (source.equals(backgroundColorTextField)) {
 			updateTileColor();
 		}
-
 	}
 }

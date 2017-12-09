@@ -2,9 +2,12 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.util.Date;
 
 import javax.imageio.ImageIO;
@@ -17,7 +20,6 @@ public class WindowsTile {
 	private boolean showLabel;
 	private boolean isLabelLight;
 	private boolean customImage;
-	private boolean hasVisualElements;
 
 	final private String DEFAULT_COLOR = "#2982CC";
 
@@ -39,12 +41,96 @@ public class WindowsTile {
 		String launcherPathWOExtension = launcher.getAbsolutePath().replaceFirst("[.][^.]+$", "");
 		String manifestPath = launcherPathWOExtension + ".VisualElementsManifest.xml";
 		File manifest = new File(manifestPath);
-		hasVisualElements = manifest.exists();
 
-		if (hasVisualElements) {
-			// TODO: Parse VisualElements
-			setDefaultSettings();
+		if (manifest.exists()) {
+			parseVisualElements(manifest);
+			// setDefaultSettings();
 		} else {
+			setDefaultSettings();
+		}
+
+	}
+
+	private void parseVisualElements(File manifest) {
+		setDefaultSettings();
+		try {
+			String drive = System.getenv("SystemDrive");
+			BufferedReader in = new BufferedReader(new FileReader(manifest));
+			String fullLine = in.readLine();
+
+			while (fullLine != null) {
+				for (String line : fullLine.split("\n")) {
+					if (line.contains("ShowNameOnSquare150x150Logo")) {
+						String value;
+						if (line.contains("'")) {
+							value = line.split("'")[1];
+						} else {
+							value = line.split("\"")[1];
+						}
+						if (value.equals("on")) {
+							showLabel = true;
+						} else {
+							showLabel = false;
+						}
+					} else if (line.contains("ForegroundText")) {
+						String value;
+						if (line.contains("'")) {
+							value = line.split("'")[1];
+						} else {
+							value = line.split("\"")[1];
+						}
+						if (value.equals("light")) {
+							isLabelLight = true;
+						} else {
+							isLabelLight = false;
+						}
+					} else if (line.contains("BackgroundColor")) {
+						String value;
+						if (line.contains("'")) {
+							value = line.split("'")[1];
+						} else {
+							value = line.split("\"")[1];
+						}
+						try {
+							Field field = Color.class.getField(value);
+							backgroundColor = (Color) field.get(null);
+						} catch (Exception e) {
+							backgroundColor = Color.decode(value);
+						}
+					} else if (line.contains("Square150x150Logo")) {
+						String path;
+						if (line.contains("'")) {
+							path = line.split("'")[1];
+						} else {
+							path = line.split("\"")[1];
+						}
+						if (!path.startsWith(drive)) {
+							path = launcher.getParentFile().getAbsolutePath() + "/" + path;
+						}
+						customImage = true;
+						image150 = ImageIO.read(new File(path));
+					} else if (line.contains("Square70x70Logo")) {
+						String path;
+						if (line.contains("'")) {
+							path = line.split("'")[1];
+						} else {
+							path = line.split("\"")[1];
+						}
+						if (!path.startsWith(drive)) {
+							path = launcher.getParentFile().getAbsolutePath() + "/" + path;
+						}
+						customImage = true;
+						image70 = ImageIO.read(new File(path));
+					}
+				}
+				fullLine = in.readLine();
+			}
+
+			in.close();
+		} catch (Exception e) {
+			System.out.println("Failed " + name);
+			e.printStackTrace();
+			// TODO: Handle input error
 			setDefaultSettings();
 		}
 
@@ -54,6 +140,8 @@ public class WindowsTile {
 		showLabel = true;
 		isLabelLight = true;
 		customImage = false;
+
+		// backgroundColor = UIManager.getColor("desktop");
 		backgroundColor = Color.decode(DEFAULT_COLOR);
 	}
 
@@ -131,6 +219,7 @@ public class WindowsTile {
 		String manifestPath = launcherPathWOExtension + ".VisualElementsManifest.xml";
 		File manifestFile = new File(manifestPath);
 		if (!manifestFile.delete()) {
+			System.out.println("Error deleting");
 			// TODO: Handle error
 		}
 
@@ -156,10 +245,6 @@ public class WindowsTile {
 
 	public Color getBackgroundColor() {
 		return backgroundColor;
-	}
-
-	public boolean hasVisualElements() {
-		return hasVisualElements;
 	}
 
 	public Image getImage150() {
@@ -205,10 +290,18 @@ public class WindowsTile {
 	}
 
 	public void setImage150(Image image150) {
-		this.image150 = image150.getScaledInstance(1024, 1024, Image.SCALE_DEFAULT);
+		this.image150 = image150;
 	}
 
 	public void setImage70(Image image70) {
-		this.image70 = image70.getScaledInstance(1024, 1024, Image.SCALE_DEFAULT);
+		this.image70 = image70;
+	}
+
+	public boolean hasImage150() {
+		return image150 != null;
+	}
+
+	public boolean hasImage70() {
+		return image70 != null;
 	}
 }
