@@ -13,15 +13,13 @@ import java.util.Date;
 import javax.imageio.ImageIO;
 
 public class WindowsTile {
-	private String name;
-	private File shortcut, launcher;
-	private Image icon, image150, image70;
-	private Color backgroundColor;
-	private boolean showLabel;
-	private boolean isLabelLight;
-	private boolean customImage;
-
 	final private String DEFAULT_COLOR = "#2982CC";
+
+	private File shortcut, launcher;
+	private String name;
+	private Color backgroundColor;
+	private Image icon, image150, image70;
+	private boolean showLabel, isLabelLight, customImage;
 
 	public WindowsTile(File shortcut, String path) {
 		name = shortcut.getName().replaceFirst("[.][^.]+$", "");
@@ -49,6 +47,15 @@ public class WindowsTile {
 			setDefaultSettings();
 		}
 
+	}
+
+	public void setDefaultSettings() {
+		showLabel = true;
+		isLabelLight = true;
+		customImage = false;
+
+		// backgroundColor = UIManager.getColor("desktop");
+		backgroundColor = Color.decode(DEFAULT_COLOR);
 	}
 
 	private void parseVisualElements(File manifest) {
@@ -109,6 +116,7 @@ public class WindowsTile {
 						}
 						customImage = true;
 						image150 = ImageIO.read(new File(path));
+
 					} else if (line.contains("Square70x70Logo")) {
 						String path;
 						if (line.contains("'")) {
@@ -134,15 +142,6 @@ public class WindowsTile {
 			setDefaultSettings();
 		}
 
-	}
-
-	public void setDefaultSettings() {
-		showLabel = true;
-		isLabelLight = true;
-		customImage = false;
-
-		// backgroundColor = UIManager.getColor("desktop");
-		backgroundColor = Color.decode(DEFAULT_COLOR);
 	}
 
 	public void exportVisualElements() {
@@ -231,62 +230,56 @@ public class WindowsTile {
 
 	}
 
-	public String getName() {
-		return name;
+	public File getShorcut() {
+		return shortcut;
 	}
 
 	public File getLauncher() {
 		return launcher;
 	}
 
-	public File getShorcut() {
-		return shortcut;
+	public String getName() {
+		return name;
 	}
 
 	public Color getBackgroundColor() {
 		return backgroundColor;
 	}
 
+	public Image getIcon() {
+		return icon;
+	}
+
 	public Image getImage150() {
 		return image150;
+	}
+
+	public boolean hasImage150() {
+		return image150 != null;
 	}
 
 	public Image getImage70() {
 		return image70;
 	}
 
-	public void setBackgroundColor(Color backgroundColor) {
-		this.backgroundColor = backgroundColor;
-	}
-
-	public boolean isLabelLight() {
-		return isLabelLight;
+	public boolean hasImage70() {
+		return image70 != null;
 	}
 
 	public boolean getShowLabel() {
 		return showLabel;
 	}
 
+	public boolean isLabelLight() {
+		return isLabelLight;
+	}
+
 	public boolean getCustomImage() {
 		return customImage;
 	}
 
-	public Image getIcon() {
-		return icon;
-	}
-
-	public void setIsLabelLight(boolean isLabelLight) {
-		this.isLabelLight = isLabelLight;
-
-	}
-
-	public void setShowLabel(boolean showLabel) {
-		this.showLabel = showLabel;
-	}
-
-	public void setCustomImage(boolean customImage) {
-		this.customImage = customImage;
-
+	public void setBackgroundColor(Color backgroundColor) {
+		this.backgroundColor = backgroundColor;
 	}
 
 	public void setImage150(Image image150) {
@@ -297,11 +290,17 @@ public class WindowsTile {
 		this.image70 = image70;
 	}
 
-	public boolean hasImage150() {
-		return image150 != null;
+	public void setShowLabel(boolean showLabel) {
+		this.showLabel = showLabel;
 	}
 
-	public boolean hasImage70() {
-		return image70 != null;
+	public void setIsLabelLight(boolean isLabelLight) {
+		this.isLabelLight = isLabelLight;
+
+	}
+
+	public void setCustomImage(boolean customImage) {
+		this.customImage = customImage;
+
 	}
 }

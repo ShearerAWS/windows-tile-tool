@@ -1,4 +1,3 @@
-import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -6,6 +5,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -48,7 +48,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 	private JComboBox<String> programComboBox, labelColorComboBox;
 	private JTextField backgroundColorTextField;
 	private JRadioButton showLabelRadio, customImageRadio;
-	private Canvas previewCanvas;
 	private ImageIcon minIcon, minRollIcon, maxIcon, maxRollIcon;
 
 	private ArrayList<WindowsTile> tiles;
@@ -57,11 +56,264 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 	private boolean validColor = true;
 
 	public WindowsTileTool() {
-
 		loadTiles();
 		setUpGUI();
 		changeCurrentTile();
+	}
 
+	/**
+	 * Loads WindowsTiles from the start menu.
+	 */
+	private void loadTiles() {
+		String drive = System.getenv("SystemDrive");
+		String startMenuAppdataPath = System.getenv("APPDATA") + "/Microsoft/Windows/Start Menu/Programs/";
+		String startMenuPath = drive + "/ProgramData/Microsoft/Windows/Start Menu/Programs/";
+
+		File startMenu = new File(startMenuPath);
+		File startMenuAppdata = new File(startMenuAppdataPath);
+
+		ArrayList<File> shortcutFiles = getAllLinks(startMenu);
+		shortcutFiles.addAll(getAllLinks(startMenuAppdata));
+
+		tiles = new ArrayList<WindowsTile>();
+		for (File f : shortcutFiles) {
+			try {
+				WindowsShortcut s = new WindowsShortcut(f);
+				if (s.getRealFilename().startsWith(drive)) {
+					WindowsTile t = new WindowsTile(f, s.getRealFilename());
+					tiles.add(t);
+				} else {
+					// TODO: Process corrupt shortcuts
+				}
+			} catch (Exception e) {
+				// TODO: Process website shortcuts
+			}
+		}
+
+		tiles.sort(new Comparator<WindowsTile>() {
+			@Override
+			public int compare(WindowsTile wt1, WindowsTile wt2) {
+				return wt1.getName().compareToIgnoreCase(wt2.getName());
+			}
+		});
+
+		currentTileIndex = 0;
+	}
+
+	/**
+	 * Finds all .lnk files within a directory and the sub directories.
+	 *
+	 * @param directory
+	 *            the root directory to be searched
+	 * @return array of all .lnk Files
+	 */
+	private ArrayList<File> getAllLinks(File directory) {
+		ArrayList<File> files = new ArrayList<File>();
+		for (File f : directory.listFiles()) {
+			if (f.isFile() && f.getAbsolutePath().endsWith(".lnk")) {
+				files.add(f);
+			} else if (f.isDirectory()) {
+				for (File subF : getAllLinks(f)) {
+					files.add(subF);
+				}
+			}
+		}
+		return files;
+	}
+
+	/**
+	 * Exports custom VisualElementsManifest for the current tile if all the
+	 * requirements are met.
+	 */
+	private void exportVisualElements() {
+		if (!validColor) {
+			backgroundColorTextField.requestFocus();
+			Toolkit.getDefaultToolkit().beep();
+		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage150()) {
+			btnImageSelect150.requestFocus();
+			Toolkit.getDefaultToolkit().beep();
+		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage70()) {
+			btnImageSelect70.requestFocus();
+			Toolkit.getDefaultToolkit().beep();
+		} else {
+			tiles.get(currentTileIndex).exportVisualElements();
+		}
+	}
+
+	/**
+	 * Removes the VisualElementsManifest for the currently selected tile.
+	 */
+	private void removeVisualElements() {
+		tiles.get(currentTileIndex).removeVisualElements();
+		changeCurrentTile();
+	}
+
+	/**
+	 * Opens the shortcut location of the currently selected tile.
+	 */
+	private void openShortcutLocation() {
+		try {
+			String shortcutPath = tiles.get(currentTileIndex).getShorcut().getAbsolutePath();
+			Runtime.getRuntime().exec("explorer.exe /select," + shortcutPath);
+		} catch (Exception e) {
+			// TODO: Handle IOException
+		}
+	}
+
+	/**
+	 * Changes the tile size on the display panel.
+	 */
+	private void changeIconSize() {
+		tilePreviewPanel.switchIconSize();
+		if (tilePreviewPanel.isSmallIcon()) {
+			btnChangeSize.setIcon(maxIcon);
+			btnChangeSize.setRolloverIcon(maxRollIcon);
+		} else {
+			btnChangeSize.setIcon(minIcon);
+			btnChangeSize.setRolloverIcon(minRollIcon);
+		}
+	}
+
+	/**
+	 * Changes the which tile is currently selected.
+	 */
+	private void changeCurrentTile() {
+		currentTileIndex = programComboBox.getSelectedIndex();
+
+		WindowsTile t = tiles.get(currentTileIndex);
+
+		lblApplicationName.setText(t.getName());
+
+		Color c = t.getBackgroundColor();
+		String colorStr = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+		backgroundColorTextField.setText(colorStr);
+		validColor = true;
+
+		if (t.isLabelLight()) {
+			labelColorComboBox.setSelectedIndex(0);
+		} else {
+			labelColorComboBox.setSelectedIndex(1);
+		}
+		labelColorComboBox.setEnabled(t.getShowLabel());
+
+		showLabelRadio.setSelected(t.getShowLabel());
+
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+
+		customImageRadio.setSelected(t.getCustomImage());
+		btnImageSelect150.setEnabled(t.getCustomImage());
+		btnImageSelect70.setEnabled(t.getCustomImage());
+
+		if (tiles.get(currentTileIndex).hasImage150()) {
+			btnImageSelect150.setText("Change Image");
+		} else {
+			btnImageSelect150.setText("Select Image");
+		}
+
+		if (tiles.get(currentTileIndex).hasImage70()) {
+			btnImageSelect70.setText("Change Image");
+		} else {
+			btnImageSelect70.setText("Select Image");
+		}
+	}
+
+	/**
+	 * Updates color of WindowsTile and the display panel.
+	 */
+	private void updateTileColor() {
+		String colorStr = backgroundColorTextField.getText();
+		if (!colorStr.startsWith("#")) {
+			colorStr = "#" + colorStr;
+		}
+		try {
+			Color backgroundColor = Color.decode(colorStr);
+			colorPreviewField.setBackground(backgroundColor);
+			backgroundColorTextField.setBackground(Color.WHITE);
+			tiles.get(currentTileIndex).setBackgroundColor(backgroundColor);
+			tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+			validColor = true;
+		} catch (Exception e) {
+			backgroundColorTextField.setBackground(Color.PINK);
+			validColor = false;
+		}
+	}
+
+	/**
+	 * Changes the label color of WindowsTile and display panel.
+	 */
+	private void changeLabelColor() {
+		boolean isLabelLight = labelColorComboBox.getSelectedItem().equals("light");
+		tiles.get(currentTileIndex).setIsLabelLight(isLabelLight);
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+	}
+
+	/**
+	 * Changes whether to display the tile label or not.
+	 */
+	private void changeShowLabel() {
+		boolean showLabel = showLabelRadio.isSelected();
+		labelColorComboBox.setEnabled(showLabel);
+		tiles.get(currentTileIndex).setShowLabel(showLabel);
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+	}
+
+	/**
+	 * Updates the WindowsTile for if the tile has a custom image.
+	 */
+	private void changeCustomImage() {
+		boolean customImage = customImageRadio.isSelected();
+		btnImageSelect150.setEnabled(customImage);
+		btnImageSelect70.setEnabled(customImage);
+		tiles.get(currentTileIndex).setCustomImage(customImage);
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+	}
+
+	/**
+	 * Changes the image for the medium (150x150) tile.
+	 */
+	private void changeImage150() {
+		try {
+			JFileChooser fc = new JFileChooser();
+
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "jpeg");
+			fc.setFileFilter(filter);
+
+			int returnVal = fc.showOpenDialog(this);
+
+			if (returnVal == JFileChooser.APPROVE_OPTION) {
+				BufferedImage image150 = ImageIO.read(fc.getSelectedFile());
+				tiles.get(currentTileIndex).setImage150(image150);
+				btnImageSelect150.setText("Change Image");
+			}
+		} catch (Exception e) {
+			// TODO: Handle image upload error
+		}
+
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+	}
+
+	/**
+	 * Changes the image for the small (70x70) tile.
+	 */
+	private void changeImage70() {
+		try {
+			JFileChooser fc = new JFileChooser();
+
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "gif", "jpeg");
+			fc.setFileFilter(filter);
+
+			int returnVal = fc.showOpenDialog(this);
+
+			if (returnVal == JFileChooser.APPROVE_OPTION) {
+				BufferedImage image70 = ImageIO.read(fc.getSelectedFile());
+				tiles.get(currentTileIndex).setImage70(image70);
+				btnImageSelect70.setText("Change Image");
+			}
+		} catch (Exception e) {
+			// TODO: Handle image upload error
+		}
+
+		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
 	}
 
 	/**
@@ -336,258 +588,33 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		settingsPanel.add(btnAbout, gbc_btnAbout);
 
 		// TODO: Set Application Icon
-
-		setVisible(true);
-	}
-
-	/**
-	 * loads WindowsTiles from the start menu
-	 */
-	private void loadTiles() {
-		String drive = System.getenv("SystemDrive");
-		String startMenuAppdataPath = System.getenv("APPDATA") + "/Microsoft/Windows/Start Menu/Programs/";
-		String startMenuPath = drive + "/ProgramData/Microsoft/Windows/Start Menu/Programs/";
-
-		File startMenu = new File(startMenuPath);
-		File startMenuAppdata = new File(startMenuAppdataPath);
-
-		ArrayList<File> shortcutFiles = getAllLinks(startMenu);
-		shortcutFiles.addAll(getAllLinks(startMenuAppdata));
-
-		tiles = new ArrayList<WindowsTile>();
-		for (File f : shortcutFiles) {
-			try {
-				WindowsShortcut s = new WindowsShortcut(f);
-				if (s.getRealFilename().startsWith(drive)) {
-					WindowsTile t = new WindowsTile(f, s.getRealFilename());
-					tiles.add(t);
-				} else {
-					// TODO: Process corrupt shortcuts
-				}
-			} catch (Exception e) {
-				// TODO: Process website shortcuts
-			}
-		}
-
-		tiles.sort(new Comparator<WindowsTile>() {
-			@Override
-			public int compare(WindowsTile wt1, WindowsTile wt2) {
-				return wt1.getName().compareToIgnoreCase(wt2.getName());
-			}
-		});
-
-		currentTileIndex = 0;
-	}
-
-	/**
-	 * Finds all .lnk files within a directory and the sub directories
-	 *
-	 * @param directory
-	 *            the root directory to be searched
-	 * @return array of all .lnk Files
-	 */
-	private ArrayList<File> getAllLinks(File directory) {
-		ArrayList<File> files = new ArrayList<File>();
-		for (File f : directory.listFiles()) {
-			if (f.isFile() && f.getAbsolutePath().endsWith(".lnk")) {
-				files.add(f);
-			} else if (f.isDirectory()) {
-				for (File subF : getAllLinks(f)) {
-					files.add(subF);
-				}
-			}
-		}
-		return files;
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
-		if (source.equals(programComboBox)) {
+		if (source.equals(btnApply)) {
+			exportVisualElements();
+		} else if (source.equals(btnRestoreDefault)) {
+			removeVisualElements();
+		} else if (source.equals(btnOpenShortcutLocation)) {
+			openShortcutLocation();
+		} else if (source.equals(btnChangeSize)) {
+			changeIconSize();
+		} else if (source.equals(programComboBox)) {
 			changeCurrentTile();
 		} else if (source.equals(backgroundColorTextField)) {
 			updateTileColor();
-		} else if (source.equals(btnOpenShortcutLocation)) {
-			openShortcutLocation();
 		} else if (source.equals(labelColorComboBox)) {
 			changeLabelColor();
 		} else if (source.equals(showLabelRadio)) {
 			changeShowLabel();
-		} else if (source.equals(btnApply)) {
-			exportVisualElements();
-		} else if (source.equals(btnRestoreDefault)) {
-			removeVisualElements();
-		} else if (source.equals(btnChangeSize)) {
-			changeIconSize();
-		} else if (source.equals(btnImageSelect70)) {
-			changeImage70();
-		} else if (source.equals(btnImageSelect150)) {
-			changeImage150();
 		} else if (source.equals(customImageRadio)) {
 			changeCustomImage();
-		}
-	}
-
-	private void removeVisualElements() {
-		tiles.get(currentTileIndex).removeVisualElements();
-		changeCurrentTile();
-	}
-
-	private void exportVisualElements() {
-		if (!validColor) {
-			backgroundColorTextField.requestFocus();
-			java.awt.Toolkit.getDefaultToolkit().beep();
-		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage150()) {
-			btnImageSelect150.requestFocus();
-			java.awt.Toolkit.getDefaultToolkit().beep();
-		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage70()) {
-			btnImageSelect70.requestFocus();
-			java.awt.Toolkit.getDefaultToolkit().beep();
-		} else {
-			tiles.get(currentTileIndex).exportVisualElements();
-		}
-	}
-
-	private void changeIconSize() {
-		tilePreviewPanel.switchIconSize();
-		if (tilePreviewPanel.isSmallIcon()) {
-			btnChangeSize.setIcon(maxIcon);
-			btnChangeSize.setRolloverIcon(maxRollIcon);
-		} else {
-			btnChangeSize.setIcon(minIcon);
-			btnChangeSize.setRolloverIcon(minRollIcon);
-		}
-	}
-
-	private void changeImage150() {
-		try {
-			JFileChooser fc = new JFileChooser();
-
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "jpeg");
-			fc.setFileFilter(filter);
-
-			int returnVal = fc.showOpenDialog(this);
-
-			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				File file = fc.getSelectedFile();
-				BufferedImage image150 = ImageIO.read(fc.getSelectedFile());
-				tiles.get(currentTileIndex).setImage150(image150);
-				btnImageSelect150.setText("Change Image");
-			}
-		} catch (Exception e) {
-			// TODO: Handle image upload error
-		}
-
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-	}
-
-	private void changeImage70() {
-		try {
-			JFileChooser fc = new JFileChooser();
-
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "gif", "jpeg");
-			fc.setFileFilter(filter);
-
-			int returnVal = fc.showOpenDialog(this);
-
-			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				File file = fc.getSelectedFile();
-				BufferedImage image70 = ImageIO.read(fc.getSelectedFile());
-				tiles.get(currentTileIndex).setImage70(image70);
-				btnImageSelect70.setText("Change Image");
-			}
-		} catch (Exception e) {
-			// TODO: Handle image upload error
-		}
-
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-	}
-
-	private void changeCustomImage() {
-		boolean customImage = customImageRadio.isSelected();
-		btnImageSelect150.setEnabled(customImage);
-		btnImageSelect70.setEnabled(customImage);
-		tiles.get(currentTileIndex).setCustomImage(customImage);
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-	}
-
-	private void changeShowLabel() {
-		boolean showLabel = showLabelRadio.isSelected();
-		labelColorComboBox.setEnabled(showLabel);
-		tiles.get(currentTileIndex).setShowLabel(showLabel);
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-	}
-
-	private void changeLabelColor() {
-		boolean isLabelLight = labelColorComboBox.getSelectedItem().equals("light");
-		tiles.get(currentTileIndex).setIsLabelLight(isLabelLight);
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-	}
-
-	private void openShortcutLocation() {
-		try {
-			String shortcutPath = tiles.get(currentTileIndex).getShorcut().getAbsolutePath();
-			Runtime.getRuntime().exec("explorer.exe /select," + shortcutPath);
-		} catch (Exception e) {
-			// TODO: Handle IOException
-		}
-	}
-
-	private void changeCurrentTile() {
-		currentTileIndex = programComboBox.getSelectedIndex();
-
-		WindowsTile t = tiles.get(currentTileIndex);
-
-		lblApplicationName.setText(t.getName());
-
-		Color c = t.getBackgroundColor();
-		String colorStr = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-		backgroundColorTextField.setText(colorStr);
-		validColor = true;
-
-		if (t.isLabelLight()) {
-			labelColorComboBox.setSelectedIndex(0);
-		} else {
-			labelColorComboBox.setSelectedIndex(1);
-		}
-		labelColorComboBox.setEnabled(t.getShowLabel());
-
-		showLabelRadio.setSelected(t.getShowLabel());
-
-		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-
-		customImageRadio.setSelected(t.getCustomImage());
-		btnImageSelect150.setEnabled(t.getCustomImage());
-		btnImageSelect70.setEnabled(t.getCustomImage());
-
-		if (tiles.get(currentTileIndex).hasImage150()) {
-			btnImageSelect150.setText("Change Image");
-		} else {
-			btnImageSelect150.setText("Select Image");
-		}
-
-		if (tiles.get(currentTileIndex).hasImage70()) {
-			btnImageSelect70.setText("Change Image");
-		} else {
-			btnImageSelect70.setText("Select Image");
-		}
-	}
-
-	private void updateTileColor() {
-		String colorStr = backgroundColorTextField.getText();
-		if (!colorStr.startsWith("#")) {
-			colorStr = "#" + colorStr;
-		}
-		try {
-			Color backgroundColor = Color.decode(colorStr);
-			colorPreviewField.setBackground(backgroundColor);
-			backgroundColorTextField.setBackground(Color.WHITE);
-			tiles.get(currentTileIndex).setBackgroundColor(backgroundColor);
-			tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
-			validColor = true;
-		} catch (Exception e) {
-			backgroundColorTextField.setBackground(Color.PINK);
-			validColor = false;
+		} else if (source.equals(btnImageSelect150)) {
+			changeImage150();
+		} else if (source.equals(btnImageSelect70)) {
+			changeImage70();
 		}
 	}
 

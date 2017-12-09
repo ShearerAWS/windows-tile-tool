@@ -71,7 +71,6 @@ public class WindowsTilePreviewPanel extends JPanel {
 					}
 					labelText += "...";
 				}
-
 				g2d.drawString(labelText, 10, getHeight() - 10);
 			}
 		}
