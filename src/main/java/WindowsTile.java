@@ -1,3 +1,4 @@
+package main.java;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -165,7 +166,7 @@ public class WindowsTile {
 						dir.mkdirs();
 					}
 
-					String image150Path = dir.getAbsolutePath() + "\\icon150x150.png";
+					String image150Path = dir.getAbsolutePath() + "\\" + name + "Icon150x150.png";
 					File image150File = new File(image150Path);
 
 					BufferedImage buffered150 = new BufferedImage(image150.getWidth(null), image150.getHeight(null),
@@ -175,7 +176,7 @@ public class WindowsTile {
 					bGr.dispose();
 
 					ImageIO.write(buffered150, "png", image150File);
-					out.println("    Square150x150Logo='VisualElementsResources\\icon150x150.png'");
+					out.println("    Square150x150Logo='VisualElementsResources\\" + name + "Icon150x150.png'");
 				}
 				if (image70 != null) {
 					File dir = new File(launcher.getParentFile().getAbsolutePath() + "/VisualElementsResources/");
@@ -183,7 +184,7 @@ public class WindowsTile {
 						dir.mkdirs();
 					}
 
-					String image70Path = dir.getAbsolutePath() + "\\icon70x70.png";
+					String image70Path = dir.getAbsolutePath() + "\\" + name + "Icon70x70.png";
 					File image70File = new File(image70Path);
 
 					BufferedImage buffered70 = new BufferedImage(image70.getWidth(null), image70.getHeight(null),
@@ -193,7 +194,7 @@ public class WindowsTile {
 					bGr.dispose();
 
 					ImageIO.write(buffered70, "png", image70File);
-					out.println("    Square70x70Logo='VisualElementsResources\\icon70x70.png'");
+					out.println("    Square70x70Logo='VisualElementsResources\\" + name + "Icon70x70.png'");
 				}
 			}
 

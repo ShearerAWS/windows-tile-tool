@@ -1,9 +1,12 @@
+package main.java;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -587,7 +590,8 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		gbc_btnAbout.gridy = 8;
 		settingsPanel.add(btnAbout, gbc_btnAbout);
 
-		// TODO: Set Application Icon
+		ImageIcon icon = new ImageIcon("src/main/resources/icon.png");
+		setIconImage(icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH));
 	}
 
 	@Override
