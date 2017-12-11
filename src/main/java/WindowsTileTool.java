@@ -15,6 +15,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -27,6 +28,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
@@ -86,10 +88,10 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 					WindowsTile t = new WindowsTile(f, s.getRealFilename());
 					tiles.add(t);
 				} else {
-					// TODO: Process corrupt shortcuts
+					// TODO Process corrupted shortcuts
 				}
 			} catch (Exception e) {
-				// TODO: Process website shortcuts
+				// Shortcut is for a website, unable to customize tile
 			}
 		}
 
@@ -130,16 +132,21 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 	 */
 	private void exportVisualElements() {
 		if (!validColor) {
+			displayErrorDialog("You must input a valid color", "Info");
 			backgroundColorTextField.requestFocus();
-			Toolkit.getDefaultToolkit().beep();
 		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage150()) {
+			displayErrorDialog("You have to upload a image", "Info");
 			btnImageSelect150.requestFocus();
-			Toolkit.getDefaultToolkit().beep();
 		} else if (tiles.get(currentTileIndex).getCustomImage() && !tiles.get(currentTileIndex).hasImage70()) {
+			displayErrorDialog("You have to upload a image", "Info");
 			btnImageSelect70.requestFocus();
-			Toolkit.getDefaultToolkit().beep();
 		} else {
-			tiles.get(currentTileIndex).exportVisualElements();
+			try {
+				tiles.get(currentTileIndex).exportVisualElements();
+			} catch (IOException e) {
+				displayErrorDialog("An error occured while exporting the VisualElementsManifest", "Error");
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -147,7 +154,11 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 	 * Removes the VisualElementsManifest for the currently selected tile.
 	 */
 	private void removeVisualElements() {
-		tiles.get(currentTileIndex).removeVisualElements();
+		try {
+			tiles.get(currentTileIndex).removeVisualElements();
+		} catch (IOException e) {
+			displayErrorDialog("An error occured while trying to clear the VisualElementsManifest", "Error");
+		}
 		changeCurrentTile();
 	}
 
@@ -159,7 +170,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 			String shortcutPath = tiles.get(currentTileIndex).getShorcut().getAbsolutePath();
 			Runtime.getRuntime().exec("explorer.exe /select," + shortcutPath);
 		} catch (Exception e) {
-			// TODO: Handle IOException
+			displayErrorDialog("An error occured while trying to open the shortcut location", "Error");
 		}
 	}
 
@@ -289,7 +300,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 				btnImageSelect150.setText("Change Image");
 			}
 		} catch (Exception e) {
-			// TODO: Handle image upload error
+			displayErrorDialog("Unable to upload image", "Error");
 		}
 
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
@@ -313,10 +324,16 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 				btnImageSelect70.setText("Change Image");
 			}
 		} catch (Exception e) {
-			// TODO: Handle image upload error
+			displayErrorDialog("Unable to upload image", "Error");
 		}
 
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
+	}
+
+	private void displayErrorDialog(String message, String title) {
+		Toolkit.getDefaultToolkit().beep();
+		JOptionPane.showMessageDialog(null, message, title,
+				title.equals("Error") ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	/**
@@ -326,7 +343,7 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
-
+			// Unable to load SystemLookAndFeel
 		}
 
 		setResizable(false);
@@ -594,6 +611,11 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		setIconImage(icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH));
 	}
 
+	private void openAbout() {
+		AboutFrame about = new AboutFrame();
+		about.setVisible(true);
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
@@ -619,6 +641,8 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 			changeImage150();
 		} else if (source.equals(btnImageSelect70)) {
 			changeImage70();
+		} else if (source.equals(btnAbout)) {
+			openAbout();
 		}
 	}
 
