@@ -25,7 +25,7 @@ import javax.swing.text.html.HTMLEditorKit;
 
 public class AboutFrame extends JFrame implements ActionListener {
 
-	private final String version = "v0.1";
+	private final String version = "v0.1.1";
 
 	private JPanel contentPane;
 	private JButton btnViewSourceCode, btnReportAnIssue, btnLogo;
@@ -61,7 +61,7 @@ public class AboutFrame extends JFrame implements ActionListener {
 		btnLogo.setFocusable(false);
 		btnLogo.setMargin(new Insets(0, 0, 0, 0));
 		btnLogo.setContentAreaFilled(false);
-		btnLogo.setIcon(new ImageIcon(AboutDesign.class.getResource("/main/resources/AboutLogo.png")));
+		btnLogo.setIcon(new ImageIcon(AboutFrame.class.getResource("/main/resources/AboutLogo.png")));
 		btnLogo.addActionListener(this);
 		headerPanel.add(btnLogo, BorderLayout.WEST);
 

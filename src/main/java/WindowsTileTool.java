@@ -330,6 +330,11 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		tilePreviewPanel.renderPreview(tiles.get(currentTileIndex));
 	}
 
+	private void openAbout() {
+		AboutFrame about = new AboutFrame();
+		about.setVisible(true);
+	}
+
 	private void displayErrorDialog(String message, String title) {
 		Toolkit.getDefaultToolkit().beep();
 		JOptionPane.showMessageDialog(null, message, title,
@@ -365,12 +370,12 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 		gbl_displayPanel.rowWeights = new double[] { 0.0, 1.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		displayPanel.setLayout(gbl_displayPanel);
 
-		minIcon = new ImageIcon(TestingWindow.class.getResource("/javax/swing/plaf/metal/icons/ocean/minimize.gif"));
+		minIcon = new ImageIcon(WindowsTileTool.class.getResource("/javax/swing/plaf/metal/icons/ocean/minimize.gif"));
 		minRollIcon = new ImageIcon(
-				TestingWindow.class.getResource("/javax/swing/plaf/metal/icons/ocean/minimize-pressed.gif"));
-		maxIcon = new ImageIcon(TestingWindow.class.getResource("/javax/swing/plaf/metal/icons/ocean/maximize.gif"));
+				WindowsTileTool.class.getResource("/javax/swing/plaf/metal/icons/ocean/minimize-pressed.gif"));
+		maxIcon = new ImageIcon(WindowsTileTool.class.getResource("/javax/swing/plaf/metal/icons/ocean/maximize.gif"));
 		maxRollIcon = new ImageIcon(
-				TestingWindow.class.getResource("/javax/swing/plaf/metal/icons/ocean/maximize-pressed.gif"));
+				WindowsTileTool.class.getResource("/javax/swing/plaf/metal/icons/ocean/maximize-pressed.gif"));
 
 		btnChangeSize = new JButton("");
 		btnChangeSize.setBorderPainted(false);
@@ -609,11 +614,6 @@ public class WindowsTileTool extends JFrame implements ActionListener, FocusList
 
 		ImageIcon icon = new ImageIcon("src/main/resources/icon.png");
 		setIconImage(icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH));
-	}
-
-	private void openAbout() {
-		AboutFrame about = new AboutFrame();
-		about.setVisible(true);
 	}
 
 	@Override
